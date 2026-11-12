@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evaluación Interactiva de Matemática</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        // Paleta personalizada: Verde Esmeralda (Primary) y Celeste (Accent)
+                        mathPrimary: {
+                            50: '#ecfdf5', 100: '#d1fae5', 200: '#a7f3d0', 300: '#6ee7b7',
+                            400: '#34d399', 500: '#10b981', 600: '#059669', 700: '#047857',
+                            800: '#065f46', 900: '#064e3b', 950: '#022c22',
+                        },
+                        mathAccent: {
+                            50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- MathJax para Ecuaciones Matemáticas -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <!-- Tone.js para efectos de sonido -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .fade-in { animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        
+        #custom-notification { transition: opacity 0.3s ease, transform 0.3s ease; transform: translateY(-20px); opacity: 0; pointer-events: none; }
+        #custom-notification.show { transform: translateY(0); opacity: 1; pointer-events: auto; }
+        
+        /* Estilos para ecuaciones para asegurar que sean legibles en todos los dispositivos */
+        .MathJax { font-size: 1.15em !important; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-mathPrimary-900 to-slate-800 min-h-screen text-gray-800 flex items-center justify-center p-3 md:p-6">
+
+    <!-- Notificación Flotante -->
+    <div id="custom-notification" class="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 bg-mathAccent-600 text-white px-6 py-3 rounded-2xl shadow-2xl font-bold flex items-center gap-3 border-2 border-mathAccent-300">
+        <span id="notification-msg">Aviso</span>
+        <button onclick="hideNotification()" class="ml-4 text-white">✕</button>
+    </div>
+
+    <!-- Contenedor Principal -->
+    <div class="max-w-4xl w-full bg-slate-50/95 backdrop-blur-md rounded-3xl shadow-2xl border-4 border-mathPrimary-700/30 overflow-hidden fade-in my-4">
+        
+        <header class="bg-gradient-to-r from-mathPrimary-950 via-mathPrimary-800 to-mathPrimary-950 text-white p-6 text-center shadow-lg">
+            <div class="inline-block bg-mathAccent-500 text-white text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider mb-2">
+                I.E. Santísima Niña María
+            </div>
+            <h1 class="text-2xl md:text-3xl font-black tracking-tight drop-shadow">EVALUACIÓN DE MATEMÁTICA</h1>
+            <p class="text-mathAccent-100 font-medium text-base md:text-lg mt-1">Ejercicios y problemas con fracciones</p>
+        </header>
+
+        <!-- PANTALLA DE REGISTRO -->
+        <div id="screen-register" class="p-6 md:p-10">
+            <div class="max-w-lg mx-auto bg-white p-6 md:p-8 rounded-2xl shadow-md border border-mathPrimary-200">
+                <h2 class="text-2xl font-black text-center mb-1 text-mathPrimary-900">¡Bienvenidas, queridas estudiantes!</h2>
+                <p class="text-center text-sm text-mathPrimary-700 mb-6">Selecciona tu grado y sección para comenzar tu evaluación.</p>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-xs font-bold text-mathPrimary-900 mb-2">GRADO</label>
+                        <select id="sel-grado" onchange="resetListaAlumnas()" class="w-full p-3 border-2 border-mathPrimary-200 rounded-xl font-semibold outline-none bg-mathPrimary-50/50">
+                            <option value="">Elegir grado</option>
+                            <option value="1">1.º año</option>
+                            <option value="2">2.º año</option>
+                            <option value="3">3.º año</option>
+                            <option value="4">4.º año</option>
+                            <option value="5">5.º año</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-mathPrimary-900 mb-2">SECCIÓN</label>
+                        <select id="sel-seccion" onchange="resetListaAlumnas()" class="w-full p-3 border-2 border-mathPrimary-200 rounded-xl font-semibold outline-none bg-mathPrimary-50/50">
+                            <option value="">Elegir sección</option>
+                            <option value="A">Sección A</option>
+                            <option value="B">Sección B</option>
+                            <option value="C">Sección C</option>
+                        </select>
+                    </div>
+                </div>
+                <button onclick="cargarEstudiantes()" class="w-full bg-mathPrimary-700 hover:bg-mathPrimary-800 text-white font-extrabold py-3 px-4 rounded-xl shadow-md mb-4 transition">
+                    🔍 Buscar Mi Nombre
+                </button>
+                <div id="container-nombre" class="hidden fade-in">
+                    <label class="block text-xs font-bold text-mathPrimary-900 mb-2">SELECCIONA TU NOMBRE DE LA LISTA</label>
+                    <select id="sel-nombre" class="w-full p-3 border-2 border-mathPrimary-300 rounded-xl font-semibold mb-6 bg-white"></select>
+                    <button onclick="iniciarEvaluacion()" class="w-full bg-mathAccent-600 hover:bg-mathAccent-700 text-white font-black py-4 px-4 rounded-xl shadow-lg text-lg transition">
+                        🚀 ¡Estoy lista, iniciar evaluación!
+                    </button>
+                </div>
+                <div id="loading-msg" class="hidden text-center text-mathPrimary-800 font-bold mt-4 animate-pulse">⌛ Buscando lista de alumnas...</div>
+            </div>
+            <div class="mt-8 pt-4 border-t border-mathPrimary-200 text-center text-sm font-medium text-mathPrimary-900">
+                Elaborado por: <span class="font-bold">Susana Calderón</span>
+            </div>
+        </div>
+
+        <!-- PANTALLA DE EXAMEN -->
+        <div id="screen-game" class="hidden p-6 md:p-8 fade-in">
+            <div class="flex justify-between items-center mb-6 bg-mathPrimary-100/80 p-4 rounded-2xl border border-mathPrimary-300">
+                <div>
+                    <span class="text-xs font-bold text-mathPrimary-700 uppercase block">Alumna</span>
+                    <span id="user-display-name" class="font-black text-mathPrimary-950 block text-lg">Estudiante</span>
+                </div>
+                <div class="w-1/2 bg-mathPrimary-200 rounded-full h-4 overflow-hidden hidden md:block">
+                    <div id="progress-bar" class="bg-mathAccent-500 h-full w-0 transition-all duration-300"></div>
+                </div>
+                <div class="font-extrabold text-mathPrimary-900 text-sm bg-white px-3 py-1.5 rounded-xl border border-mathPrimary-300">
+                    Pregunta <span id="current-q-num">1</span> / <span id="total-q-num">0</span>
+                </div>
+            </div>
+
+            <!-- Aquí van las preguntas dinámicas -->
+            <div id="question-card" class="bg-white p-6 md:p-8 rounded-2xl shadow-md border border-mathPrimary-200 mb-6"></div>
+
+            <div class="flex justify-between items-center gap-4">
+                <button id="btn-prev" onclick="navegarPregunta(-1)" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 px-6 rounded-xl disabled:opacity-30 transition">← Anterior</button>
+                <button id="btn-next" onclick="navegarPregunta(1)" class="bg-mathPrimary-600 hover:bg-mathPrimary-700 text-white font-extrabold py-3 px-8 rounded-xl shadow-md transition">Siguiente →</button>
+                <button id="btn-finish" onclick="confirmarFinalizacion()" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 px-8 rounded-xl shadow-lg transition">✅ Finalizar Evaluación</button>
+            </div>
+        </div>
+
+        <!-- PANTALLA DE RESULTADOS -->
+        <div id="screen-results" class="hidden p-6 md:p-10 text-center fade-in">
+            <div class="inline-block bg-mathPrimary-100 text-mathPrimary-900 text-xs font-bold px-4 py-1 rounded-full mb-2">
+                ¡Felicitaciones por completar tu evaluación!
+            </div>
+            <h2 class="text-3xl font-black mb-2 text-slate-900">Reporte Final</h2>
+            <p id="result-student-info" class="text-sm font-bold text-slate-700 mb-6"></p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div class="bg-white border-2 border-mathPrimary-300 rounded-3xl p-6 shadow-md flex flex-col items-center justify-center">
+                    <p class="text-xs font-bold uppercase mb-1 text-gray-500">Logro Alcanzado</p>
+                    <div id="result-letter" class="text-7xl font-black text-mathPrimary-600 my-1">--</div>
+                    <p id="result-level-desc" class="text-sm font-extrabold px-3 py-1 rounded-full bg-mathPrimary-100 text-mathPrimary-900 mt-1">--</p>
+                    <p id="result-points" class="text-2xl font-extrabold text-slate-900 mt-3">Nota: 0 / 20</p>
+                </div>
+                <div class="bg-white border-2 border-mathPrimary-300 rounded-3xl p-6 shadow-md text-left flex flex-col justify-center">
+                    <div class="text-emerald-700 font-bold mb-3 text-lg">✔ Correctas: <span id="stat-correct">0</span></div>
+                    <div class="text-rose-700 font-bold mb-3 text-lg">❌ Incorrectas: <span id="stat-incorrect">0</span></div>
+                    <div class="text-slate-700 font-bold text-lg">⚪ En Blanco: <span id="stat-blank">0</span></div>
+                </div>
+            </div>
+
+            <!-- Tabla resumen de escala de calificación -->
+            <div class="bg-white/90 border border-mathPrimary-200 rounded-2xl p-4 mb-6 text-xs text-left">
+                <p class="font-extrabold text-slate-900 uppercase mb-2 text-center">Escala de Calificación Institucional</p>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center font-semibold">
+                    <div class="p-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900">
+                        <span class="font-black text-base block">AD (18 – 20)</span>
+                        Logro destacado
+                    </div>
+                    <div class="p-2 rounded-xl bg-mathAccent-50 border border-mathAccent-200 text-mathAccent-900">
+                        <span class="font-black text-base block">A (15 – 17)</span>
+                        Logro esperado / Satisfactorio
+                    </div>
+                    <div class="p-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-900">
+                        <span class="font-black text-base block">B (11 – 14)</span>
+                        En proceso
+                    </div>
+                    <div class="p-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-900">
+                        <span class="font-black text-base block">C (00 – 10)</span>
+                        En inicio / Reprobado
+                    </div>
+                </div>
+            </div>
+
+            <div id="sync-status" class="mb-6 p-4 rounded-xl text-sm font-bold bg-mathPrimary-100 border border-mathPrimary-300 text-mathPrimary-900">⌛ Registrando tus resultados...</div>
+            <button onclick="location.reload()" class="bg-mathPrimary-800 text-white font-bold py-3 px-8 rounded-xl hover:bg-mathPrimary-900 transition">Volver al Inicio</button>
+        </div>
+
+    </div>
+
+    <script>
+        // NUEVA URL APPS SCRIPT
+        const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbztz8rGl16NTS7zXwA_fGCsru5Fwz9rszWIgE7eEjIeLHu50x3eSoLXMBw1Qj1gzqLn/exec";
+
+        let userIP = "No detectada";
+        fetch('https://api.ipify.org?format=json').then(res => res.json()).then(data => { userIP = data.ip; }).catch(()=>{});
+
+        // ALGORITMO FISHER-YATES PARA ALEATORIEDAD
+        function shuffleArray(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function showNotification(msg) {
+            document.getElementById('notification-msg').textContent = msg;
+            document.getElementById('custom-notification').classList.add('show');
+            setTimeout(() => document.getElementById('custom-notification').classList.remove('show'), 3200);
+        }
+        function hideNotification() { document.getElementById('custom-notification').classList.remove('show'); }
+
+        function resetListaAlumnas() {
+            document.getElementById('container-nombre').classList.add('hidden');
+            document.getElementById('sel-nombre').innerHTML = '';
+        }
+
+        // AUDIO INTELIGENTE
+        function playAudio(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                let cleanText = text.replace(/\\\(.*?\\\)/g, " ecuación matemática ").replace(/[.,\/#!$%\^&\*;:{}=\-_`~()¿?¡!"']/g, " ").trim();
+                const utterance = new SpeechSynthesisUtterance(cleanText);
+                utterance.lang = 'es-ES';
+                utterance.rate = 1.05;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+        function stopAudio() { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); }
+
+        // BANCO DE PREGUNTAS (10 preguntas extraídas del documento x 2 puntos = 20 Puntos)
+        const originalQuestions = [
+            { 
+                id: 1, 
+                type: 'mc', 
+                points: 2, 
+                q: "Resuelve las siguientes operaciones. En caso de ser posible, simplifica: <br><br> \\( 2 + 3 - \\frac{7}{2} - \\frac{1}{5} - 5 \\)", 
+                options: ["\\( -\\frac{37}{10} \\)", "\\( \\frac{37}{10} \\)", "\\( -\\frac{35}{10} \\)", "\\( -\\frac{8}{7} \\)"], 
+                answer: 0 
+            },
+            { 
+                id: 2, 
+                type: 'fill', 
+                points: 2, 
+                q: "Analiza la siguiente igualdad, luego completa el espacio vacío con la fracción correspondiente (escríbela usando una barra, por ejemplo: 7/20): <br><br> \\( \\frac{2}{5} + \\square = \\frac{3}{4} \\)", 
+                accepted: ["7/20"] 
+            },
+            { 
+                id: 3, 
+                type: 'mc', 
+                points: 2, 
+                q: "¿Cuál es la octava parte del producto entre 10 y 0,17?", 
+                options: ["0,2", "1,17", "0,236", "0,138", "0,2125"], 
+                answer: 4 // Nota: se corrigió el valor matemáticamente exacto de las opciones del doc original (0,2125).
+            },
+            { 
+                id: 4, 
+                type: 'mc', 
+                points: 2, 
+                q: "¿Cuál es la novena parte de \\( 3^{20} \\)?", 
+                options: ["\\( 3^7 \\)", "\\( 3^{17} \\)", "\\( 3^{18} \\)", "\\( 13^7 \\)", "\\( 13^{20} \\)"], 
+                answer: 2 
+            },
+            { 
+                id: 5, 
+                type: 'mc', 
+                points: 2, 
+                q: "¿Cuál de las siguientes igualdades son falsas? <br><br> I. \\( 2^3 = 3^2 \\) <br> II. \\( 2^{-3} = -2^3 \\) <br> III. \\( 2^0 = 1 \\)", 
+                options: ["Solo I y II", "Solo II y III", "Solo I y III", "I, II Y III", "Ninguna de las anteriores"], 
+                answer: 0 
+            },
+            { 
+                id: 6, 
+                type: 'mc', 
+                points: 2, 
+                q: "En mi pueblo viven 25000 personas. De ellas \\( \\frac{3}{4} \\) tienen el pelo oscuro, y \\( \\frac{4}{5} \\) de los que tienen el pelo oscuro tienen los ojos marrones. <br><br> ¿Qué fracción de la población del pueblo tiene el pelo oscuro pero sus ojos son marrones?, ¿cuántas personas son?", 
+                options: ["\\( \\frac{3}{20} \\) ; 3750 personas", "\\( \\frac{3}{4} \\) ; 18750 personas", "\\( \\frac{3}{5} \\) ; 15000 personas", "\\( \\frac{1}{20} \\) ; 1250 personas"], 
+                answer: 2 
+            },
+            { 
+                id: 7, 
+                type: 'mc', 
+                points: 2, 
+                q: "En el coliseo de una ciudad, se jugó la final de un campeonato de vóley. En total, 1200 personas asistieron al coliseo. Esta cantidad de personas representa a los \\( \\frac{3}{4} \\) de su capacidad. <br><br> ¿Cuál es la capacidad que tiene este coliseo?", 
+                options: ["900 personas", "1200 personas", "1600 personas", "4800 personas"], 
+                answer: 2 
+            },
+            { 
+                id: 8, 
+                type: 'mc', 
+                points: 2, 
+                q: "En el Centro Comercial “Mercadillo Bolognesi”, en abril, una Tablet costaba 400 soles, luego en el mes de mayo tuvo un aumento del 30% y en junio tuvo otro aumento, esta vez del 20%. <br><br> Actualmente deseo comprar la Tablet ¿cuánto deberé pagar?", 
+                options: ["575 soles", "450 soles", "624 soles", "600 soles"], 
+                answer: 2 
+            },
+            { 
+                id: 9, 
+                type: 'mc', 
+                points: 2, 
+                q: "A Vicente le proponen resolver el siguiente reto: <br><br> \\( \\left( \\left(\\frac{1}{3}\\right)^{-2} + \\left(\\frac{1}{7}\\right)^{-1} \\right)^{\\frac{1}{2}} \\) <br><br> ¿Cuál será la respuesta de Vicente?", 
+                options: ["\\( \\frac{1}{21} \\)", "4", "\\( \\frac{1}{4} \\)", "2"], 
+                answer: 1 
+            },
+            { 
+                id: 10, 
+                type: 'mc', 
+                points: 2, 
+                q: "Un país tiene aproximadamente 32 millones de habitantes. Las \\( \\frac{3}{4} \\) partes de esta población utilizan las redes sociales para comunicarse. <br><br> Según esta información aproximadamente, ¿cuántos habitantes de este país utilizan las redes sociales para comunicarse?", 
+                options: ["27 millones de habitantes", "24 millones de habitantes", "11 millones de habitantes", "8 millones de habitantes"], 
+                answer: 1 
+            }
+        ];
+
+        let questions = []; 
+        let currentQuestionIndex = 0;
+        let studentData = {};
+        let userAnswers = {};
+        let maxScore = 0;
+
+        function cargarEstudiantes() {
+            const grado = document.getElementById('sel-grado').value;
+            const seccion = document.getElementById('sel-seccion').value;
+            
+            if (!grado || !seccion) return showNotification("Por favor, selecciona tu grado y sección.");
+            
+            document.getElementById('loading-msg').classList.remove('hidden');
+            fetch(`${GOOGLE_SHEETS_URL}?action=getEstudiantes&grado=${grado}&seccion=${seccion}`)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('loading-msg').classList.add('hidden');
+                    if (data.status === "success" && data.estudiantes.length > 0) {
+                        const sel = document.getElementById('sel-nombre');
+                        sel.innerHTML = '<option value="">Selecciona tu nombre</option>';
+                        data.estudiantes.forEach(e => sel.innerHTML += `<option value="${e}">${e}</option>`);
+                        document.getElementById('container-nombre').classList.remove('hidden');
+                    } else {
+                        showNotification("No se encontraron alumnas registradas.");
+                    }
+                }).catch(() => {
+                    document.getElementById('loading-msg').classList.add('hidden');
+                    showNotification("Error de conexión con la base de datos.");
+                });
+        }
+
+        function iniciarEvaluacion() {
+            const n = document.getElementById('sel-nombre').value;
+            if (!n) return showNotification("Por favor, selecciona tu nombre.");
+            
+            questions = shuffleArray(JSON.parse(JSON.stringify(originalQuestions)));
+            questions.forEach(q => {
+                if (q.type === 'mc') {
+                    const correctText = q.options[q.answer];
+                    q.options = shuffleArray(q.options);
+                    q.answer = q.options.indexOf(correctText);
+                }
+            });
+
+            maxScore = questions.reduce((acc, q) => acc + q.points, 0);
+            document.getElementById('total-q-num').textContent = questions.length;
+
+            studentData = { grado: document.getElementById('sel-grado').value, seccion: document.getElementById('sel-seccion').value, nombre: n };
+            document.getElementById('user-display-name').textContent = `${n} (${studentData.grado}.º "${studentData.seccion}")`;
+            
+            document.getElementById('screen-register').classList.add('hidden');
+            document.getElementById('screen-game').classList.remove('hidden');
+            
+            if (typeof Tone !== 'undefined' && Tone.context.state !== 'running') Tone.start();
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            const q = questions[currentQuestionIndex];
+            document.getElementById('current-q-num').textContent = currentQuestionIndex + 1;
+            document.getElementById('progress-bar').style.width = `${((currentQuestionIndex + 1)/questions.length)*100}%`;
+
+            document.getElementById('btn-prev').disabled = (currentQuestionIndex === 0);
+            if (currentQuestionIndex === questions.length - 1) {
+                document.getElementById('btn-next').classList.add('hidden');
+                document.getElementById('btn-finish').classList.remove('hidden');
+            } else {
+                document.getElementById('btn-next').classList.remove('hidden');
+                document.getElementById('btn-finish').classList.add('hidden');
+            }
+
+            let html = `
+                <div class="mb-4 flex justify-between items-center">
+                    <span class="bg-mathAccent-100 text-mathAccent-700 text-xs font-bold px-3 py-1 rounded-full">Valor: ${q.points} Pts</span>
+                    <span class="text-xs text-gray-400 font-semibold">Orden aleatorio activo</span>
+                </div>
+                <div class="flex items-start justify-between gap-4 mb-6">
+                    <h3 class="text-lg md:text-xl font-medium text-slate-900 flex-1">${q.q}</h3>
+                    <button onclick="playAudio('${q.q.replace(/'/g, "\\'")}')" class="flex-shrink-0 bg-mathPrimary-100 hover:bg-mathPrimary-200 text-mathPrimary-900 p-3 rounded-full transition shadow-sm" title="Escuchar pregunta">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                        </svg>
+                    </button>
+                </div>
+            `;
+
+            if (q.type === 'mc') {
+                html += `<div class="space-y-3">`;
+                q.options.forEach((opt, idx) => {
+                    const isSel = (userAnswers[q.id] === idx);
+                    html += `<button onclick="selectMC(${q.id}, ${idx})" class="w-full text-left p-4 rounded-xl border-2 font-medium transition flex items-center justify-between ${isSel ? 'border-mathAccent-500 bg-mathAccent-50 text-mathAccent-900' : 'border-mathPrimary-200 bg-mathPrimary-50 hover:bg-mathPrimary-100'}">
+                        <span>${String.fromCharCode(65 + idx)}. ${opt}</span>
+                        <div class="w-5 h-5 rounded-full border-2 ${isSel ? 'border-mathAccent-500 bg-mathAccent-500' : 'border-mathPrimary-300'} flex-shrink-0 ml-4"></div>
+                    </button>`;
+                });
+                html += `</div>`;
+            } else if (q.type === 'fill') {
+                html += `<input type="text" value="${userAnswers[q.id] || ''}" oninput="userAnswers[${q.id}] = this.value" class="w-full p-4 border-2 border-mathPrimary-300 rounded-xl text-lg font-bold bg-mathPrimary-50 focus:border-mathAccent-500 focus:outline-none" placeholder="Escribe aquí tu respuesta..."/>`;
+            }
+
+            document.getElementById('question-card').innerHTML = html;
+            
+            if (window.MathJax) {
+                MathJax.typesetPromise([document.getElementById('question-card')]).catch(err => console.log(err));
+            }
+        }
+
+        function selectMC(qId, idx) { userAnswers[qId] = idx; renderQuestion(); }
+        
+        function navegarPregunta(dir) { stopAudio(); currentQuestionIndex += dir; renderQuestion(); }
+
+        function confirmarFinalizacion() {
+            stopAudio();
+            
+            let pts = 0, corr = 0, inco = 0, blan = 0;
+            questions.forEach(q => {
+                let ans = userAnswers[q.id];
+                if (ans === undefined || ans === '') { blan++; }
+                else if (q.type === 'mc') { ans === q.answer ? (corr++, pts += q.points) : inco++; }
+                else if (q.type === 'fill') { q.accepted.some(a => a === ans.trim()) ? (corr++, pts += q.points) : inco++; }
+            });
+
+            // Conversión de escala 0 a 20 
+            const notaVigesimal = Math.round((pts / maxScore) * 20);
+            const notaFormateada = notaVigesimal < 10 ? `0${notaVigesimal}` : `${notaVigesimal}`;
+            
+            let letR = 'C', descR = 'En inicio / Reprobado', colorClass = "text-7xl font-black text-rose-600 my-1", badgeClass = "text-sm font-extrabold px-4 py-1 rounded-full bg-rose-100 text-rose-800 mt-1";
+            if (notaVigesimal >= 18) { letR = 'AD'; descR = 'Logro destacado'; colorClass = "text-7xl font-black text-emerald-600 my-1"; badgeClass = "text-sm font-extrabold px-4 py-1 rounded-full bg-emerald-100 text-emerald-800 mt-1"; } 
+            else if (notaVigesimal >= 15) { letR = 'A'; descR = 'Logro esperado / Satisfactorio'; colorClass = "text-7xl font-black text-mathAccent-600 my-1"; badgeClass = "text-sm font-extrabold px-4 py-1 rounded-full bg-mathAccent-100 text-mathAccent-800 mt-1"; } 
+            else if (notaVigesimal >= 11) { letR = 'B'; descR = 'En proceso'; colorClass = "text-7xl font-black text-amber-500 my-1"; badgeClass = "text-sm font-extrabold px-4 py-1 rounded-full bg-amber-100 text-amber-900 mt-1"; }
+
+            document.getElementById('result-student-info').textContent = `Alumna: ${studentData.nombre} — ${studentData.grado}.º año, Sección "${studentData.seccion}"`;
+            
+            const letterEl = document.getElementById('result-letter');
+            letterEl.textContent = letR; letterEl.className = colorClass;
+            const descEl = document.getElementById('result-level-desc');
+            descEl.textContent = descR; descEl.className = badgeClass;
+            
+            document.getElementById('result-points').textContent = `Nota: ${notaFormateada} / 20`;
+            document.getElementById('stat-correct').textContent = corr; document.getElementById('stat-incorrect').textContent = inco; document.getElementById('stat-blank').textContent = blan;
+            
+            document.getElementById('screen-game').classList.add('hidden'); document.getElementById('screen-results').classList.remove('hidden');
+
+            fetch(GOOGLE_SHEETS_URL, { 
+                method: 'POST', mode: 'no-cors', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ ...studentData, correctas: corr, incorrectas: inco, enBlanco: blan, puntaje: notaVigesimal, letra: letR, descripcion: descR, ip: userIP })
+            }).then(() => { document.getElementById('sync-status').innerHTML = "✅ ¡Listo! Tu calificación ha sido registrada correctamente."; })
+              .catch(() => { document.getElementById('sync-status').innerHTML = "⚠️ Evaluación finalizada (verifica tu conexión)."; });
+        }
+    </script>
+</body>
+</html>
